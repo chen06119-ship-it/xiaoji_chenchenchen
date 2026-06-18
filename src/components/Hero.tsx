@@ -20,10 +20,14 @@ export function Hero({
   intro,
   entries,
 }: HeroProps) {
-  const [activeIndex, setActiveIndex] = useState(entries.length - 1);
+  const [activeIndex, setActiveIndex] = useState(Math.max(entries.length - 1, 0));
   const activeEntry = entries[activeIndex];
 
   useEffect(() => {
+    if (entries.length <= 1) {
+      return;
+    }
+
     const timer = window.setInterval(() => {
       setActiveIndex((current) => (current + 1) % entries.length);
     }, 8200);
@@ -69,13 +73,13 @@ export function Hero({
           <span>当前状态</span>
           <strong>{status}</strong>
         </div>
+        <div className="hero__actions">
+          <a href="/community">去社区看看</a>
+          <a href="/records/new">新增成长记录</a>
+        </div>
       </div>
 
-      <div
-        className="storybook"
-        aria-label="小鸭子的绘本风成长图片轮播"
-        aria-live="polite"
-      >
+      <div className="storybook" aria-label="小鸡成长图片轮播" aria-live="polite">
         <div className="storybook__track">
           {entries.map((entry, index) => {
             const position = getSlidePosition(index);
@@ -107,12 +111,14 @@ export function Hero({
           })}
         </div>
 
-        <div className="storybook__caption">
-          <span>
-            {activeEntry.date} · {activeEntry.stage}
-          </span>
-          <strong>{activeEntry.title}</strong>
-        </div>
+        {activeEntry ? (
+          <div className="storybook__caption">
+            <span>
+              {activeEntry.date} · {activeEntry.stage}
+            </span>
+            <strong>{activeEntry.title}</strong>
+          </div>
+        ) : null}
 
         <div className="storybook__controls" aria-label="轮播控制">
           <button type="button" onClick={showPrevious} aria-label="上一张成长图片">

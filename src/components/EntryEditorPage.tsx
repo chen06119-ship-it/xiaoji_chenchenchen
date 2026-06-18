@@ -35,7 +35,7 @@ function getInitialState(entry?: DuckEntry): EntryFormState {
     diet: entry?.metrics.find((metric) => metric.label === "饮食")?.value ?? "待记录",
     status: entry?.metrics.find((metric) => metric.label === "状态")?.value ?? "待记录",
     image: entry?.image ?? "",
-    imageAlt: entry?.imageAlt ?? "小鸭子成长记录的照片占位",
+    imageAlt: entry?.imageAlt ?? "小鸡成长记录的照片占位",
   };
 }
 
@@ -73,12 +73,13 @@ export function EntryEditorPage({ entry, mode, onSave }: EntryEditorPageProps) {
       return;
     }
 
+    const notes = splitNotes(form.notes);
     const draft: DuckEntryDraft = {
       date: form.date,
       title: form.title.trim(),
       stage: form.stage.trim() || "新的现状",
       summary: form.summary.trim(),
-      imageAlt: form.imageAlt.trim() || "小鸭子成长记录的照片占位",
+      imageAlt: form.imageAlt.trim() || "小鸡成长记录的照片占位",
       image: form.image.trim() || undefined,
       metrics: [
         { label: "体重", value: form.weight.trim() || "待记录" },
@@ -86,7 +87,7 @@ export function EntryEditorPage({ entry, mode, onSave }: EntryEditorPageProps) {
         { label: "状态", value: form.status.trim() || "待记录" },
       ],
       tags: splitList(form.tags),
-      notes: splitNotes(form.notes).length > 0 ? splitNotes(form.notes) : [form.summary.trim()],
+      notes: notes.length > 0 ? notes : [form.summary.trim()],
     };
 
     onSave(draft);
@@ -115,9 +116,9 @@ export function EntryEditorPage({ entry, mode, onSave }: EntryEditorPageProps) {
 
       <section className="editor-panel" aria-labelledby="editor-title">
         <p className="eyebrow">{mode === "create" ? "New Record" : "Edit Record"}</p>
-        <h1 id="editor-title">{mode === "create" ? "新建小鸭现状" : "编辑小鸭记录"}</h1>
+        <h1 id="editor-title">{mode === "create" ? "新建小鸡现状" : "编辑小鸡记录"}</h1>
         <p className="editor-panel__lead">
-          保存后会追加到照片故事墙，不会覆盖原来的记录。现在先保存在这个浏览器里。
+          这里保存的是首页成长档案，会先写入当前浏览器。多人互动内容请使用社区页发帖。
         </p>
 
         <form className="entry-form" onSubmit={handleSubmit}>
@@ -159,7 +160,7 @@ export function EntryEditorPage({ entry, mode, onSave }: EntryEditorPageProps) {
             <textarea
               value={form.summary}
               onChange={(event) => updateField("summary", event.target.value)}
-              placeholder="用一两句话概括今天的小鸭现状"
+              placeholder="用一两句话概括今天的小鸡现状"
               required
             />
           </label>

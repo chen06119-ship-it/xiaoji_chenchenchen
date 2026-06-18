@@ -78,10 +78,13 @@ export function RecordPage({ entry }: RecordPageProps) {
         </section>
 
         <aside className="comment-placeholder" aria-labelledby="comments-title">
-          <h2 id="comments-title">评论区预留</h2>
+          <h2 id="comments-title">想互动的话，去社区页</h2>
           <p>
-            后续加入登录功能后，这里会变成这篇记录的独立评论区。现在先保留位置，不展示不可用的输入框。
+            首页成长记录保留为小鸡档案。多人发帖、图片上传、评论和喜欢功能已经放到社区页，方便大家一起更新近况。
           </p>
+          <a className="edit-link" href="/community">
+            进入小鸡朋友圈
+          </a>
         </aside>
       </article>
     </main>

@@ -1,20 +1,26 @@
 import { duckProfile } from "./data/duckEntries";
 import { AuthPage } from "./components/AuthPage";
+import { CommunityPage } from "./components/CommunityPage";
 import { EntryEditorPage } from "./components/EntryEditorPage";
 import { Hero } from "./components/Hero";
 import { MetricsPanel } from "./components/MetricsPanel";
+import { ProfilePage } from "./components/ProfilePage";
 import { RecordPage } from "./components/RecordPage";
 import { StoryWall } from "./components/StoryWall";
 import { Timeline } from "./components/Timeline";
-import { useAuth, type AuthProfile } from "./hooks/useAuth";
+import { useAuth } from "./hooks/useAuth";
 import { useDuckEntries } from "./hooks/useDuckEntries";
 import { supabase } from "./lib/supabase";
+import type { Profile } from "./types/community";
 
 export function App() {
   const { entries, createEntry, updateEntry } = useDuckEntries();
-  const { profile } = useAuth();
+  const { isLoading, profile, refreshProfile, user } = useAuth();
   const pathname = window.location.pathname;
   const authRoute = pathname === "/login";
+  const communityRoute = pathname === "/community";
+  const profileRoute = pathname === "/profile";
+  const userProfileMatch = pathname.match(/^\/users\/([^/]+)$/);
   const newRecordRoute = pathname === "/records/new";
   const editMatch = pathname.match(/^\/records\/([^/]+)\/edit$/);
   const recordMatch = pathname.match(/^\/records\/([^/]+)$/);
@@ -28,8 +34,31 @@ export function App() {
   if (authRoute) {
     return (
       <>
-        <SiteHeader homeHref="/" profile={profile} />
+        <SiteHeader homeHref="/" isLoading={isLoading} profile={profile} />
         <AuthPage />
+      </>
+    );
+  }
+
+  if (communityRoute) {
+    return (
+      <>
+        <SiteHeader homeHref="/" isLoading={isLoading} profile={profile} />
+        <CommunityPage profile={profile} user={user} />
+      </>
+    );
+  }
+
+  if (profileRoute || userProfileMatch) {
+    return (
+      <>
+        <SiteHeader homeHref="/" isLoading={isLoading} profile={profile} />
+        <ProfilePage
+          currentProfile={profile}
+          onProfileSaved={refreshProfile}
+          profileId={userProfileMatch?.[1]}
+          user={user}
+        />
       </>
     );
   }
@@ -37,7 +66,7 @@ export function App() {
   if (newRecordRoute) {
     return (
       <>
-        <SiteHeader homeHref="/" profile={profile} />
+        <SiteHeader homeHref="/" isLoading={isLoading} profile={profile} />
         <EntryEditorPage
           mode="create"
           onSave={(draft) => {
@@ -52,7 +81,7 @@ export function App() {
   if (editMatch) {
     return (
       <>
-        <SiteHeader homeHref="/" profile={profile} />
+        <SiteHeader homeHref="/" isLoading={isLoading} profile={profile} />
         <EntryEditorPage
           entry={editingEntry}
           mode="edit"
@@ -68,7 +97,7 @@ export function App() {
   if (recordMatch) {
     return (
       <>
-        <SiteHeader homeHref="/" profile={profile} />
+        <SiteHeader homeHref="/" isLoading={isLoading} profile={profile} />
         <RecordPage entry={selectedEntry} />
       </>
     );
@@ -76,7 +105,7 @@ export function App() {
 
   return (
     <>
-      <SiteHeader homeHref="#top" profile={profile} />
+      <SiteHeader homeHref="#top" isLoading={isLoading} profile={profile} />
 
       <main id="top">
         <Hero
@@ -97,10 +126,11 @@ export function App() {
 
 type SiteHeaderProps = {
   homeHref: string;
-  profile: AuthProfile | null;
+  isLoading: boolean;
+  profile: Profile | null;
 };
 
-function SiteHeader({ homeHref, profile }: SiteHeaderProps) {
+function SiteHeader({ homeHref, isLoading, profile }: SiteHeaderProps) {
   async function handleSignOut() {
     await supabase?.auth.signOut();
     window.location.href = "/";
@@ -112,17 +142,20 @@ function SiteHeader({ homeHref, profile }: SiteHeaderProps) {
         {duckProfile.siteTitle}
       </a>
       <nav className="site-header__nav" aria-label="主要导航">
-        <a href="/#story-wall-title">照片墙</a>
+        <a href="/#story-wall-title">成长记录</a>
+        <a href="/community">社区</a>
         <a href="/#timeline-title">时间线</a>
-        <a href="/#metrics-title">成长指标</a>
+        <a href="/#metrics-title">照护指标</a>
       </nav>
       <div className="site-header__auth">
-        {profile ? (
+        {isLoading ? (
+          <span className="user-chip">读取登录状态...</span>
+        ) : profile ? (
           <>
-            <span className="user-chip">
+            <a className="user-chip" href="/profile">
               {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : null}
-              {profile.username}
-            </span>
+              {profile.displayName}
+            </a>
             <button type="button" onClick={handleSignOut}>
               退出
             </button>

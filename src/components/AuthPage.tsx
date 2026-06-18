@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { ensureProfile } from "../hooks/useAuth";
 import { isSupabaseConfigured, supabase, usernameToEmail } from "../lib/supabase";
 
 type AuthMode = "login" | "signup";
@@ -8,35 +9,44 @@ export function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [bio, setBio] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isSignup = mode === "signup";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
 
+    const trimmedUsername = username.trim();
+    const trimmedAvatarUrl = avatarUrl.trim();
+    const trimmedBio = bio.trim();
+
     if (!supabase) {
-      setMessage("还没有配置 Supabase。请先添加 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY。");
+      setMessage("还没有配置 Supabase。请先设置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY。");
       return;
     }
 
-    if (!username.trim() || password.length < 6) {
+    if (!trimmedUsername || password.length < 6) {
       setMessage("用户名不能为空，密码至少 6 位。");
       return;
     }
 
     setIsSubmitting(true);
 
-    const email = usernameToEmail(username);
-    const result =
-      mode === "signup"
+    try {
+      const email = usernameToEmail(trimmedUsername);
+      const result = isSignup
         ? await supabase.auth.signUp({
             email,
             password,
             options: {
               data: {
-                avatar_url: avatarUrl.trim(),
-                username: username.trim(),
+                avatar_url: trimmedAvatarUrl,
+                bio: trimmedBio,
+                display_name: trimmedUsername,
+                username: trimmedUsername,
               },
             },
           })
@@ -45,23 +55,40 @@ export function AuthPage() {
             password,
           });
 
-    setIsSubmitting(false);
+      if (result.error) {
+        setMessage(result.error.message);
+        return;
+      }
 
-    if (result.error) {
-      setMessage(result.error.message);
-      return;
+      if (result.data.user) {
+        await ensureProfile(result.data.user, {
+          avatarUrl: trimmedAvatarUrl,
+          bio: trimmedBio,
+          displayName: trimmedUsername,
+          username: trimmedUsername,
+        });
+      }
+
+      window.location.href = "/community";
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "登录处理失败，请稍后再试。");
+    } finally {
+      setIsSubmitting(false);
     }
+  }
 
-    window.location.href = "/";
+  function handleModeChange() {
+    setMode(isSignup ? "login" : "signup");
+    setMessage("");
   }
 
   return (
     <main className="auth-page">
       <section className="auth-panel" aria-labelledby="auth-title">
-        <p className="eyebrow">{mode === "login" ? "Welcome Back" : "Create User"}</p>
-        <h1 id="auth-title">{mode === "login" ? "登录小鸡小屋" : "创建小鸡用户"}</h1>
+        <p className="eyebrow">{isSignup ? "Create Account" : "Welcome Back"}</p>
+        <h1 id="auth-title">{isSignup ? "创建小鸡用户" : "登录小鸡小屋"}</h1>
         <p className="auth-panel__lead">
-          这里只需要用户名、密码和头像。底层会用 Supabase 安全保存账号，不在前端保存密码。
+          使用用户名和密码登录。注册时会同步创建个人资料，后续可以在资料页修改头像、昵称和简介。
         </p>
 
         {!isSupabaseConfigured ? (
@@ -75,9 +102,11 @@ export function AuthPage() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
-            用户名
+            用户名 / ID
             <input
               autoComplete="username"
+              disabled={isSubmitting}
+              maxLength={32}
               onChange={(event) => setUsername(event.target.value)}
               placeholder="xiaoji"
               type="text"
@@ -88,7 +117,9 @@ export function AuthPage() {
           <label>
             密码
             <input
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              autoComplete={isSignup ? "new-password" : "current-password"}
+              disabled={isSubmitting}
+              minLength={6}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="至少 6 位"
               type="password"
@@ -96,34 +127,42 @@ export function AuthPage() {
             />
           </label>
 
-          {mode === "signup" ? (
-            <label>
-              头像链接
-              <input
-                onChange={(event) => setAvatarUrl(event.target.value)}
-                placeholder="/images/chick-pick.jpg 或 https://..."
-                type="text"
-                value={avatarUrl}
-              />
-            </label>
+          {isSignup ? (
+            <>
+              <label>
+                头像链接
+                <input
+                  disabled={isSubmitting}
+                  onChange={(event) => setAvatarUrl(event.target.value)}
+                  placeholder="/images/chick-pick.jpg 或 https://..."
+                  type="text"
+                  value={avatarUrl}
+                />
+              </label>
+
+              <label>
+                简介
+                <input
+                  disabled={isSubmitting}
+                  maxLength={120}
+                  onChange={(event) => setBio(event.target.value)}
+                  placeholder="写一句给大家看的介绍"
+                  type="text"
+                  value={bio}
+                />
+              </label>
+            </>
           ) : null}
 
           {message ? <p className="form-error">{message}</p> : null}
 
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "处理中..." : mode === "login" ? "登录" : "创建用户"}
+          <button type="submit" disabled={isSubmitting || !isSupabaseConfigured}>
+            {isSubmitting ? "处理中..." : isSignup ? "创建用户" : "登录"}
           </button>
         </form>
 
-        <button
-          className="auth-switch"
-          type="button"
-          onClick={() => {
-            setMode(mode === "login" ? "signup" : "login");
-            setMessage("");
-          }}
-        >
-          {mode === "login" ? "没有账号？创建一个" : "已有账号？去登录"}
+        <button className="auth-switch" type="button" onClick={handleModeChange}>
+          {isSignup ? "已有账号？去登录" : "没有账号？创建一个"}
         </button>
       </section>
     </main>

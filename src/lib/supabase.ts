@@ -10,11 +10,11 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
   : null;
 
 export function usernameToEmail(username: string) {
-  const trimmedUsername = username.trim();
-  const normalizedUsername = Array.from(trimmedUsername)
-    .map((character) => character.codePointAt(0)?.toString(36) ?? "")
-    .filter(Boolean)
-    .join("-");
+  const normalizedUsername = username
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_\u4e00-\u9fa5-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
   return `u-${normalizedUsername || "xiaoji-user"}@xiaoji.local`;
 }

@@ -12,14 +12,14 @@ export function StoryWall({ entries }: StoryWallProps) {
           <p className="eyebrow">Photo Notes</p>
           <h2 id="story-wall-title">照片故事墙</h2>
           <p className="section__lead">
-            新增记录会继续追加在这里，不会把原来的 4 条顶掉。点开任意卡片，可以进入单独的文字记录页。
+            新增记录会继续追加在这里，不会覆盖原来的故事。点开任意卡片，可以进入单独的文字记录页。
           </p>
         </div>
         <a
           className="icon-action"
           href="/records/new"
-          title="新建小鸭现状"
-          aria-label="新建小鸭现状"
+          title="新建小鸡现状"
+          aria-label="新建小鸡现状"
         >
           +
         </a>
